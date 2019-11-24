@@ -1,0 +1,24 @@
+{
+  "name": "pinplaylambda",
+  "version": "1.0.0",
+  "description": "",
+  "main": "handler.js",
+  "dependencies": {
+    "aws-sdk": "^2.578.0",
+    "binary-file": "^0.2.1",
+    "body-parser": "^1.19.0",
+    "dist-exiftool": "^10.53.0",
+    "exif": "^0.6.0",
+    "exif-js": "^2.3.0",
+    "exiftool": "^0.0.3",
+    "googleapis": "^45.0.0",
+    "node-exiftool": "^2.3.0",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
