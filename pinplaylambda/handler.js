@@ -1,4 +1,5 @@
 'use strict';
+const AWS = require('aws-sdk');
 const exiftool = require('node-exiftool');
 const ep = new exiftool.ExiftoolProcess();
 const BinaryFile = require('binary-file');
@@ -6,6 +7,7 @@ var ExifImage = require('exif').ExifImage;
 var request = require('request');
 var playlists;
 var failure;
+var s3 = new AWS.S3();
 
 module.exports.pinplay = async event =>{
   console.log("event",event); 
@@ -24,7 +26,14 @@ module.exports.pinplay = async event =>{
           null,
           2)
         }
-    }else {
+    }else {     
+      console.log("returndata", returndata);              
+       const {gps,exif} = returndata;
+       console.log("gps",gps);
+        var country = await getCountry(gps.GPSLatitude,gps.GPSLongitude);
+        console.log("country", country);        
+        console.log("exif",exif.CreateDate);
+        exportS3(image);
       return {
         statusCode: 200,
         body: JSON.stringify(
@@ -39,17 +48,72 @@ module.exports.pinplay = async event =>{
 };
 
 async function extractData(option) {
-  try {
+  return new Promise((resolve, reject) => {
     new ExifImage(option, function(error, exifData) {
-      console.log("entrei");
-      if (error)
-        return Promise.resolve(false);           
-        else
-            return Promise.resolve(exifData);
+      if (error) {
+        console.log("error ", error);
+        reject(error);
+      } else {
+        console.log("exifData ", exifData);
+        resolve(exifData);
+      }
     });
-  } catch (error) {
-    console.log("Catch: " + error.message);
-    return Promise.resolve(false);    
-  }
+  });
+} 
+
+
+async function getCountry(latitude,longitude){ 
+  return new Promise((resolve, reject) => {
+    console.log("latlng",latitude+longitude);
+    latitude = DECtoDMS(latitude);
+    
+    longitude = DECtoDMS(longitude);
+    console.log("DECtoDMS",latitude+longitude);
+    request("https://maps.googleapis.com/maps/api/geocode/json?latlng="+latitude+","+longitude+"&key=AIzaSyBBlERNMHhV5pwkfMwfXlBIOEFvmEGoz64", function (error, response, body) {
+      if(error){
+        console.log('error:', error); // Print the error if one occurred
+        reject(error);
+      }
+      console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received     
+      console.log('body:', body); // Print the HTML for the Google homepage.
+      const {results} = JSON.parse(body);
+      var country = results[0].address_components.filter((item)=>item.types.includes("country"));
+      resolve(country); 
+    });
+  });
+  
 }
+
+function DECtoDMS(a)
+{
+  return a[0] + '.' + a[1].toString().replace(/\D/, '') + a[2].toString().replace(/\D/, '');
+}
+
+
+function exportS3(image) {
+  let decodedImage = Buffer.from(image, "base64");
+  var filePath = "avatars/tempavatar.jpg";
+  var params = {
+    Body: decodedImage,
+    Bucket: "pinplay-images",
+    Key: filePath
+  };
+  s3.upload(params, function(err, data) {
+    if (err) {
+      callback(err, null);
+    } else {
+      let response = {
+        statusCode: 200,
+        headers: {
+          my_header: "my_value"
+        },
+        body: JSON.stringify(data),
+        isBase64Encoded: false
+      };
+      callback(null, response);
+    }
+  });
+}
+
+
 
