@@ -38,6 +38,7 @@ module.exports.pinplay = async event =>{
         console.log("from s3",re);
         console.log("exif",exif.CreateDate);
         exportS3(image);
+        await callLambda();
         var playlist = await spf.createPlaylist({name:"test_solo", description:"integration"})
         var rde = re.slice(0,5).map(r=> {
           var url_id = r.URL.split("/");
@@ -64,7 +65,7 @@ module.exports.pinplay = async event =>{
           }]
         }
 
-        await callLambda();
+        
         
       return {
         statusCode: 200,
